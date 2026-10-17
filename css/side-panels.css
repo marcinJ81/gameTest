@@ -1,0 +1,53 @@
+/* Okna nad grą: ekwipunek rycerza (lewe) i tabela turnieju (prawe) */
+.panel.inv{--c:var(--cyan)}
+.panel.tourney{--c:var(--pink)}
+.side-body{position:absolute; inset:38px 18px 14px; display:flex; flex-direction:column; gap:10px; z-index:1}
+
+/* ekwipunek: 4 x 2 sloty */
+.inv-grid{flex:1; min-height:0; display:grid; grid-template-columns:repeat(4,1fr); grid-template-rows:repeat(2,1fr); gap:10px}
+.inv-slot{
+  min-height:0; display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 4px 5px;
+  background:#0b1030; box-shadow:0 -2px 0 0 #222b55,0 2px 0 0 #222b55,-2px 0 0 0 #222b55,2px 0 0 0 #222b55;
+}
+.inv-slot canvas{position:static; flex:1; min-height:0; width:100%; object-fit:contain}
+.inv-slot span{font-size:10px; letter-spacing:1px; color:#3a4570; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%}
+.inv-slot.own{background:#121a44; box-shadow:0 -2px 0 0 var(--c),0 2px 0 0 var(--c),-2px 0 0 0 var(--c),2px 0 0 0 var(--c)}
+.inv-slot.own span{color:var(--ink)}
+.inv-slot.new{animation:slotNew .25s steps(2) 6}
+@keyframes slotNew{50%{background:#3df2ff55}}
+
+.inv-coins{display:flex; align-items:center; gap:10px; font-size:14px; letter-spacing:1px}
+.inv-coins b{color:var(--yellow); font-weight:normal; min-width:2ch}
+.coin-row{display:flex; gap:5px; flex-wrap:wrap}
+.coin-row i{ /* pikselowa moneta */
+  width:8px; height:8px; background:var(--yellow);
+  box-shadow:0 -2px 0 0 #c9a22a,0 2px 0 0 #8a6a12,-2px 0 0 0 #c9a22a,2px 0 0 0 #8a6a12;
+}
+.coin-row b{color:var(--yellow); font-weight:normal}
+
+/* tabela turnieju */
+.tourney-scroll{flex:1; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--c) transparent}
+.tourney-table thead th{position:sticky; top:0; background:var(--panel)}
+.tourney-table tr.me td{background:#ffd23d26; color:var(--yellow)}
+.tourney-table tr.me .who::before{content:'★ '}
+.tourney-table tr.foe td{background:#ff3dc822; color:var(--pink)}
+.tourney-table tr.foe .pts{color:var(--pink)}
+.tourney-table tr.beaten td{color:#4a4a6a}
+.tourney-table tr.beaten .pts{color:#4a4a6a; font-size:10px}
+.tourney-table tr.beaten canvas{opacity:.4}
+.tourney-table{width:100%; border-collapse:collapse; font-size:13px; letter-spacing:1px}
+.tourney-table th{font-size:10px; color:#8a7aa8; text-align:left; padding:0 6px 6px; font-weight:normal}
+.tourney-table td{padding:2px 6px; white-space:nowrap}
+.tourney-table tbody tr:nth-child(odd){background:#ffffff08}
+.tourney-table .n{color:#8a7aa8; text-align:right; width:2.5em}
+.tourney-table .arms{width:24px}
+.tourney-table .arms canvas{position:static; display:block; width:14px; height:18px}
+.tourney-table .who{width:100%; overflow:hidden; text-overflow:ellipsis; max-width:0}
+.tourney-table .pts{color:var(--yellow); text-align:right}
+
+@media (max-width:820px){
+  .panel.inv{min-height:260px}
+  .panel.tourney{min-height:330px}
+  .inv-slot span{font-size:8px}
+  .tourney-table{font-size:11px}
+}

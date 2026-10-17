@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Przejmujemy Kontrolę</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/panels.css">
+<link rel="stylesheet" href="css/game-ui.css">
+<link rel="stylesheet" href="css/entry.css">
+<link rel="stylesheet" href="css/side-panels.css">
+</head>
+<body>
+<main class="app">
+  <section class="panel inv" id="invPanel" aria-label="Ekwipunek rycerza: zdobyte przedmioty i monety">
+    <div class="tag">EKWIPUNEK RYCERZA</div>
+    <div class="side-body">
+      <div class="inv-grid" id="invGrid"></div>
+      <div class="inv-coins">MONETY <b id="invCoins">4</b><span class="coin-row" id="invCoinIcons"></span></div>
+    </div>
+  </section>
+
+  <section class="panel tourney" id="tourneyPanel" aria-label="Tabela turnieju: rycerze startujący w turnieju">
+    <div class="tag" id="tourneyTag">TABELA TURNIEJU</div>
+    <div class="side-body">
+      <div class="tourney-scroll" id="tourneyScroll">
+        <table class="tourney-table">
+          <thead><tr><th>#</th><th></th><th class="who">RYCERZ</th><th class="pts">SKUT.</th></tr></thead>
+          <tbody id="tourneyBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel game" id="gamePanel" aria-label="Gra: trening rycerza na placu, potem turniej">
+    <canvas id="game"></canvas>
+    <div class="tag" id="gameTag">TRENING RYCERZA</div>
+    <div class="hud">
+      <div>MONETY <b id="hCoins">4</b></div>
+      <div>RYNSZTUNEK <b id="hGear">0/8</b></div>
+      <div><span id="hPassL">PRZEJŚCIE</span> <b id="hPass">1</b></div>
+      <div>BROŃ <b id="hWeapon">MIECZ</b></div>
+      <div><span id="hBestL">REKORD</span> <b id="hBest">0/8</b></div>
+    </div>
+    <div class="hint" id="hint">WCIŚNIJ <kbd>SPACJA</kbd> ABY RUSZYĆ</div>
+    <div class="toast" id="toast"></div>
+    <div class="entry" id="entry" role="dialog" aria-modal="true" aria-labelledby="entryTitle" hidden>
+      <div class="entry-box">
+        <div class="entry-title" id="entryTitle">TURNIEJ RYCERSKI</div>
+        <p>WPISOWE: <b id="entryFee">2 MONETY</b></p>
+        <p>MASZ: <b id="entryCoins">0 MONET</b></p>
+        <p>LIGA: <b id="entryLeague">LIGA GIERMKÓW</b> · MIEJSCE: <b id="entryRank">21 / 21</b></p>
+        <p class="entry-q">CZY WCHODZISZ DO TURNIEJU?</p>
+        <div class="entry-opts">
+          <button class="opt" data-v="yes" tabindex="-1">TAK</button>
+          <button class="opt" data-v="no" tabindex="-1">NIE</button>
+        </div>
+        <div class="entry-keys"><kbd>←</kbd><kbd>→</kbd> WYBÓR · <kbd>ENTER</kbd> ZATWIERDŹ</div>
+      </div>
+    </div>
+    <div class="btns">
+      <button class="btn" id="btnReset" tabindex="-1">[R] OD NOWA</button>
+      <button class="btn" id="btnLower" tabindex="-1" hidden>[X] OPUŚĆ</button>
+      <button class="btn" id="btnAssist" tabindex="-1">[1] FLAGA: OFF</button>
+      <button class="btn" id="btnQuit" tabindex="-1">[2] KONIEC TRENINGU</button>
+      <button class="btn" id="btnMute" tabindex="-1">[M] DŹWIĘK: ON</button>
+    </div>
+  </section>
+</main>
+
+<!-- kolejność ma znaczenie: zwykłe skrypty (działa też z file://) -->
+<script src="js/core/utils.js"></script>
+<script src="js/core/noise.js"></script>
+<script src="js/core/draw.js"></script>
+
+
+<script src="js/game/data.js"></script>
+<script src="js/game/arena-data.js"></script>
+<script src="js/game/training-data.js"></script>
+<script src="js/game/audio.js"></script>
+<script src="js/game/hud.js"></script>
+<script src="js/game/logic.js"></script>
+<script src="js/game/ground.js"></script>
+<script src="js/game/sky.js"></script>
+<script src="js/game/tents.js"></script>
+<script src="js/game/stands.js"></script>
+<script src="js/game/royal.js"></script>
+<script src="js/game/forest.js"></script>
+<script src="js/game/trainees.js"></script>
+<script src="js/game/scenery.js"></script>
+<script src="js/game/scene.js"></script>
+<script src="js/game/dummy.js"></script>
+<script src="js/game/horse.js"></script>
+<script src="js/game/lance.js"></script>
+<script src="js/game/knight.js"></script>
+<script src="js/game/league.js"></script>
+<script src="js/game/rival.js"></script>
+<script src="js/game/duel.js"></script>
+<script src="js/game/assist.js"></script>
+<script src="js/game/entry.js"></script>
+<script src="js/game/render.js"></script>
+<script src="js/game/input.js"></script>
+
+<script src="js/side/inventory.js"></script>
+<script src="js/side/standings.js"></script>
+
+<script src="js/main.js"></script>
+</body>
+</html>
