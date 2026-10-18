@@ -9,8 +9,10 @@ function swordSweet() {
 }
 const lanceTip = () => lanceGeom(0, 0, LANCE_DOWN, LANCES[weapon()].len).tx;
 
-/* gdzie stoi rycerz w chwili, gdy trzeba wcisnąć klawisz; na turnieju cel (przeciwnik) jedzie naprzeciw */
+/* gdzie stoi rycerz w chwili, gdy trzeba wcisnąć klawisz; na turnieju cel (przeciwnik) jedzie naprzeciw;
+   w walce pieszej: odległość ciosu przed przeciwnikiem */
 function assistMarkerX() {
+  if (onFoot()) return Math.round(S.duel.ox - swordSweet());
   const v = knightSpeed(), vo = S.duel ? S.duel.vo : 0, close = v + vo;
   const sword = weapon() === 'sword';
   const off = sword ? swordSweet() : 3 + lanceTip();
@@ -18,7 +20,7 @@ function assistMarkerX() {
   return Math.round(S.x + v * (targetX() - S.x - off - close * lead) / close);
 }
 /* trening: po pudłach albo stała (klawisz 1); turniej: w pierwszej walce (do pierwszej wygranej) */
-const assistShown = () => S.duel ? S.duel.hint && S.duel.phase === 'ride' && !S.hitPass
+const assistShown = () => S.duel ? S.duel.hint && (S.duel.foot ? S.duel.phase === 'fight' : S.duel.phase === 'ride' && !S.hitPass)
   : (S.assist || Game.assistOn) && !S.over && !S.hitPass;
 const assistReady = () => weapon() === 'sword' ? !S.swing && S.cool <= 0 : S.lance.st === 'up';
 

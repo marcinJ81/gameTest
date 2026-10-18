@@ -1,5 +1,5 @@
 'use strict';
-/* Tło gry: plac treningowy albo turniej (Game.scene). Rozkład sceny i składanie warstw.
+/* Tło gry: plac treningowy, turniej albo miasteczko (Game.scene, miasteczko: town.js). Rozkład sceny i składanie warstw.
    Statyczne części pieczone raz na zmianę rozmiaru / sceny do warstw:
    niebo+ziemia (piksele) -> konstrukcje (las, namioty, trybuny, loża) -> [turniej] barierki przed tłumem.
    Między nimi co klatkę: chmury i ptaki, tłum, para książęca, rycerze w tle, proporce. */
@@ -48,7 +48,7 @@ function bakeSky() {
 }
 
 function buildScenery() {
-  if (Game.scene === 'training') buildTraining(); else buildArena();
+  if (Game.scene === 'training') buildTraining(); else if (Game.scene === 'town') buildTown(); else buildArena();
 }
 
 /* plac treningowy: las w tle, namioty po lewej, płot, ćwiczący rycerze */
@@ -99,6 +99,7 @@ function buildArena() {
 function updateScenery(dt) {
   updateSky(dt);
   if (Game.scene === 'training') updateTrainees(dt, Game.trainees);
+  else if (Game.scene === 'town') updateTown(dt);
 }
 
 /* tło, rysowane przed kukłą i rycerzem */
@@ -111,6 +112,11 @@ function drawScenery(ctx, t) {
     a.clearRect(0, 0, Game.W, Game.H);
     drawTrainees(a, t, Game.trainees);
     ctx.filter = TRAINEE_FILTER; ctx.drawImage(Game.lyActors, 0, 0); ctx.filter = 'none';
+  } else if (Game.scene === 'town') {
+    const a = Game.lyActors.getContext('2d');
+    a.clearRect(0, 0, Game.W, Game.H);
+    drawTown(a, t);
+    ctx.filter = TOWN_FILTER; ctx.drawImage(Game.lyActors, 0, 0); ctx.filter = 'none';
   } else {
     for (const st of Game.stands) drawCrowd(ctx, t, st);
     drawRoyals(ctx, t, Game.royal);

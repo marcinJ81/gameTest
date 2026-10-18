@@ -47,6 +47,18 @@
     </div>
     <div class="hint" id="hint">WCIŚNIJ <kbd>SPACJA</kbd> ABY RUSZYĆ</div>
     <div class="toast" id="toast"></div>
+    <div class="bars" id="bars" hidden aria-label="Paski życia: ty i przeciwnik">
+      <div class="bar me">
+        <div class="bar-name">TY</div>
+        <div class="bar-track"><i id="barMe"></i></div>
+        <div class="bar-info"><span id="barMeHp">100/100</span><span id="barMeHits"></span></div>
+      </div>
+      <div class="bar foe">
+        <div class="bar-name" id="barFoeName">PRZECIWNIK</div>
+        <div class="bar-track"><i id="barFoe"></i></div>
+        <div class="bar-info"><span id="barFoeHp">100/100</span><span id="barFoeHits"></span></div>
+      </div>
+    </div>
     <div class="entry" id="entry" role="dialog" aria-modal="true" aria-labelledby="entryTitle" hidden>
       <div class="entry-box">
         <div class="entry-title" id="entryTitle">TURNIEJ RYCERSKI</div>
@@ -59,6 +71,20 @@
           <button class="opt" data-v="no" tabindex="-1">NIE</button>
         </div>
         <div class="entry-keys"><kbd>←</kbd><kbd>→</kbd> WYBÓR · <kbd>ENTER</kbd> ZATWIERDŹ</div>
+      </div>
+    </div>
+    <div class="entry" id="yield" role="dialog" aria-modal="true" aria-labelledby="yieldTitle" hidden>
+      <div class="entry-box">
+        <div class="entry-title" id="yieldTitle">7 TRAFIEŃ</div>
+        <p id="yieldText"></p>
+        <div id="yieldAsk">
+          <p class="entry-q">CZY SIĘ PODDAJESZ?</p>
+          <div class="entry-opts">
+            <button class="opt" data-v="yes" tabindex="-1">TAK</button>
+            <button class="opt" data-v="no" tabindex="-1">NIE</button>
+          </div>
+          <div class="entry-keys"><kbd>←</kbd><kbd>→</kbd> WYBÓR · <kbd>ENTER</kbd> ZATWIERDŹ</div>
+        </div>
       </div>
     </div>
     <div class="btns">
@@ -82,6 +108,7 @@
 <script src="js/game/training-data.js"></script>
 <script src="js/game/audio.js"></script>
 <script src="js/game/hud.js"></script>
+<script src="js/game/dialog.js"></script>
 <script src="js/game/logic.js"></script>
 <script src="js/game/ground.js"></script>
 <script src="js/game/sky.js"></script>
@@ -92,6 +119,7 @@
 <script src="js/game/trainees.js"></script>
 <script src="js/game/scenery.js"></script>
 <script src="js/game/scene.js"></script>
+<script src="js/game/town.js"></script>
 <script src="js/game/dummy.js"></script>
 <script src="js/game/horse.js"></script>
 <script src="js/game/lance.js"></script>
@@ -99,6 +127,7 @@
 <script src="js/game/league.js"></script>
 <script src="js/game/rival.js"></script>
 <script src="js/game/duel.js"></script>
+<script src="js/game/foot.js"></script>
 <script src="js/game/assist.js"></script>
 <script src="js/game/entry.js"></script>
 <script src="js/game/render.js"></script>

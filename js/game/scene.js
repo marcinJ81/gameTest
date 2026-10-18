@@ -1,6 +1,6 @@
 'use strict';
-/* Sceny gry: trening (start) -> turniej (po zaliczeniu treningu). Przejście = ściemnienie i rozjaśnienie. */
-const SCENE_TAG = { training: 'TRENING RYCERZA', tournament: 'TURNIEJ RYCERSKI' };
+/* Sceny gry: trening (start) -> turniej (po zaliczeniu treningu) -> miasteczko (po wygranej lidze). Przejście = ściemnienie i rozjaśnienie. */
+const SCENE_TAG = { training: 'TRENING RYCERZA', tournament: 'TURNIEJ RYCERSKI', town: 'MIASTECZKO' };
 const FADE_T = .7; // czas ściemniania i rozjaśniania (s)
 
 function setScene(name) {

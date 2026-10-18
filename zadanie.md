@@ -87,3 +87,23 @@ Zwycięstwo to 4 monety do przodu porażka to dwie, jeżeli monety po porażce s
 Zrób nową iteracje-11.md
 --Wykonane
 
+## zadanie 12
+KOlejna zmiana, walka konna będzie się odbywać do remisu czyli 1 do 1 wtedy walka z konia kończy się i będzie walka piesza.
+Ale piesza walka się zmieni. Teraz będzie ona wyglądać w taki sposób że będzie kierowana przez gracza.
+Opisze wygląd walki pieszej.
+Runda się zaczyna od przejścia rycerza sterowanego przez gracza od lewej strony ekranu do środka przeciwnik sterowany przez komputer też staje na środku. Czyli stoją na przeciwko siebie.
+Najwieksza zmiana będzie taka że sterowanie rycerzem będzie za pomocą strzałem lewa - prawa, tył -  przód oczywiście spacja to uderzanie mieczem. Walka będzie polegać na tym żeby uderzyć przeciwnika i uskoczyć w tył żeby przeciwnik nie trafił. Wprowadzony tez będzie system inforamujący o stanie przeciwnika i swoim. CZyli pasek życia, będzie się włączam podczas waliko konnej oraz pieszej.
+I tak na razie ustawiamy obrażenia:
+- 5 - miecz podstawowy,
+- 10 - miecz lepszy
+- 25 - lanca
+- 50 - kopia
+Jak jest pojedynek na kopie i rycerze schodzą z koni to pasek jest liczony od nowa czyli od 100.
+Tak więc walka piesza to będzie 10 uderzeń trafionych, ale może być tak że jak jest 7 to jedna ze stron może się poddać to jest automatycznie taki monit wyskakuje że 7 uderzeń trafionych na przeciwniku, walko może się zakończyć wygraną tego co trafił przeciwnika 7 razy, no i przyjmujemy że rycerze będący na końcu stawki będą wyberać tę opcje ci z najwyższych miejsc nie.
+Na razie nie bierzmy zbroi pod uwagę. dodaj kolejny plik iteracji iteracja-12.md
+--Wykonane
+
+## zadanie 13
+Trzeba poprawić rycerza jak walczy w ręcz, bo znikają mu nogi i podpowiedz wyłączyć za pomocą przycisku 1.
+Po za tym jak gracz wygra, to przenosi się do nowej lokalizacji będzie ona takim miasteczkiem gdzie w tle chodzą ludzie, jest kowal, któ©y kuje miecz, inn człowiek ostrzy nóż, jeszcze ktoś inny kucharz wsadza chleb do pieca gdzeiś obok w piekrani, no i jest karczma przed która kilku rycerzy rozmawi z lewej strony jest namiot gracza, od nie go zaczyna gracz.
+--Wykonane

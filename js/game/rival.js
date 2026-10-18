@@ -5,13 +5,15 @@ function drawRival(ctx, t) {
   const D = S.duel;
   if (!D) return;
   const wpn = weapon(), em = D.opp.emblem;
-  const ang = wpn === 'sword' ? (D.oSwing ? swingAngle(D.oAt) : -1 + Math.sin(t * 2.5 + 1) * .05)
+  const windup = D.foot && D.ai.st === 'windup'; // pieszo: miecz uniesiony do ciosu — znak, żeby uskoczyć
+  const ang = wpn === 'sword' ? (D.oSwing ? swingAngle(D.oAt) : windup ? SW_A[1] : -1 + Math.sin(t * 2.5 + 1) * .05)
     : lanceAngle(t, LANCES[wpn], D.oLance);
+  if (D.foot && D.oinv > 0 && (D.oinv * 12 | 0) % 2) return; // pieszo: mruga po trafieniu
   const ox = Math.round(D.ox) + (D.ohurtT < .15 ? 2 : 0); // po trafieniu odrzuca go do tyłu
   ctx.save();
   ctx.translate(2 * ox + 1, 0); ctx.scale(-1, 1); // lustro względem kolumny ox
-  drawKnight(ctx, ox, Game.surf - RIVAL_LANE, {
-    gear: S.gear, walk: D.owalk, walking: D.phase === 'ride', mounted: mounted(), weapon: wpn, ang, hasWeapon: true,
+  drawKnight(ctx, ox, Game.surf - (D.foot ? 0 : RIVAL_LANE), {
+    gear: S.gear, walk: D.owalk, walking: D.foot ? D.omoving : D.phase === 'ride', mounted: mounted(), weapon: wpn, ang, hasWeapon: true,
     emblem: S.gear >= 5 ? em : null, // godło tylko wtedy, gdy gracz też je ma
     tunic: em.field, tunicD: mixHex(em.field, '#000000', .3), plume: em.ink
   });

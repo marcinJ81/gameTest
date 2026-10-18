@@ -15,9 +15,10 @@ function resetGame() {
     gear: 0, coins: COINS, emblem: null, swing: false, at: 0, struck: false, cool: 0, lance: newLance(),
     missStreak: 0, assist: false, goal: null, arrived: false, entry: null, askT: 0,
     tour: null, duel: null, // turniej: liga i miejsce gracza / bieżąca walka (duel.js)
+    inv: 0, push: 0,        // walka piesza: chwila bez obrażeń, odrzut (foot.js)
     parts: [], pops: [], best: loadBest()
   };
-  Game.trans = null; setScene('training'); closeEntry();
+  Game.trans = null; setScene('training'); closeEntry(); closeMonit(); Held.clear();
   setHint('WCIŚNIJ <kbd>SPACJA</kbd> ABY RUSZYĆ');
   updateHud();
   renderStandings();
@@ -34,8 +35,9 @@ function resizeGame() {
 }
 
 const hasGood = () => S.gear >= 4;
-const mounted = () => S.gear >= 6;
-const weapon = () => S.gear >= 8 ? 'kopia' : S.gear >= 7 ? 'lance' : 'sword';
+/* w walce pieszej (po zejściu z koni) rycerz walczy mieczem, który miał przy boku */
+const mounted = () => S.gear >= 6 && !onFoot();
+const weapon = () => onFoot() ? 'sword' : S.gear >= 8 ? 'kopia' : S.gear >= 7 ? 'lance' : 'sword';
 const knightY = () => mounted() ? riderY(Game.surf) : Game.surf;
 const knightSpeed = () => (S.duel ? DUEL_SPEED : S.speed) * (mounted() ? HORSE_MUL : 1);
 /* S.over: 'won' = pełny rynsztunek i trafienie kopią, 'out' = pudło bez monet, 'quit' = klawisz 2;
@@ -45,7 +47,7 @@ const knightSpeed = () => (S.duel ? DUEL_SPEED : S.speed) * (mounted() ? HORSE_M
 const riding = () => S.duel ? S.duel.phase === 'ride' : S.started && (!S.over || !S.arrived);
 /* w co celuje rycerz: kukła na treningu, przeciwnik na turnieju */
 const targetX = () => S.duel ? S.duel.ox : dummyX();
-const strikeTarget = straw => S.duel ? hitRival() : hitDummy(straw);
+const strikeTarget = straw => S.duel ? (S.duel.foot ? footHitRival() : hitRival()) : hitDummy(straw);
 function knightAngle(t) {
   if (weapon() !== 'sword') return S.over ? LANCE_UP : lanceAngle(t, LANCES[weapon()]);
   if (S.swing) return swingAngle(S.at);
@@ -54,12 +56,13 @@ function knightAngle(t) {
 
 /* spacja */
 function swing() {
-  if (S.over || (S.duel && S.duel.phase !== 'ride')) return;
+  if (S.over || (S.duel && S.duel.phase !== (S.duel.foot ? 'fight' : 'ride'))) return;
   if (!S.started) { S.started = true; setHint(null); return; }
   if (weapon() !== 'sword') { toast(WEAPON_NAME[weapon()] + ': OPUSZCZASZ KLAWISZEM X'); return; }
   if (S.swing || S.cool > 0) return; // w trakcie zamachu / zadyszki nie da się zacząć kolejnego
   S.swing = true; S.at = 0; S.struck = false;
   sfxSwing();
+  if (onFoot()) rivalDodge();
 }
 
 /* moment uderzenia: trafienie tylko gdy cel jest w końcowej części ostrza */
@@ -118,8 +121,10 @@ function award() {
 }
 
 /* klawisz 1: stała podpowiedź (flaga przed kukłą) włącz / wyłącz */
+/* na turnieju: włącza / wyłącza flagę w bieżącej walce, a wybór przechodzi na kolejne walki */
 function toggleAssist() {
-  if (S.over || S.tour) return; // opcja treningu
+  if (S.duel) { S.duel.hint = Game.assistOn = !S.duel.hint; toast('FLAGA: ' + (S.duel.hint ? 'WŁĄCZONA' : 'WYŁĄCZONA')); updateHud(); return; }
+  if (S.over || S.tour) return; // poza walką: tylko na treningu
   Game.assistOn = !Game.assistOn;
   toast('STAŁA PODPOWIEDŹ: ' + (Game.assistOn ? 'WŁĄCZONA' : 'WYŁĄCZONA'));
   updateHud();
@@ -177,6 +182,7 @@ function updateWin() {
 function updateGame(dt) {
   updateTransition(dt);
   if (S.duel) updateDuel(dt);
+  else if (inTown()) walkTown(dt);
   else if (riding()) {
     const v = knightSpeed();
     S.x += v * dt; S.walk += v * dt * .45;

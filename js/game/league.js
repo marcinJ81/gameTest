@@ -4,7 +4,7 @@
 const WIN_COINS = 4, LOSS_COINS = 2;  // wygrana / porażka; porażka do 0 monet lub mniej = koniec gry
 const TIER_ACC = [.3, .6, .9];        // skuteczność: dolna, środkowa, górna część tabeli
 const TIER_SHARE = .3;                // dolne i górne 30% tabeli (w lidze 10: 3 + 4 + 3)
-const TOP_ROUNDS = 4, ROUNDS = 3;     // najlepsi walczą na 4 rundy, reszta na 3
+const TIER_YIELD = [1, .5, 0];        // szansa, że rycerz podda się po 7 trafieniach: dół tabeli zawsze, góra nigdy
 
 const LEAGUES = {
   squire: { name: 'LIGA GIERMKÓW', seed: 2210, knights: [
@@ -59,12 +59,12 @@ const LEAGUES = {
     'Sobiesław Tłustobrzuch z Kalisza'
   ] }
 };
-/* herb i siła każdego rycerza są stałe: herb z jego numeru, siła z miejsca w tabeli */
+/* herb, siła i skłonność do poddania się są stałe: herb z numeru rycerza, reszta z miejsca w tabeli */
 for (const L of Object.values(LEAGUES)) {
   const n = L.knights.length, k = Math.round(n * TIER_SHARE);
   L.knights = L.knights.map((name, i) => {
     const tier = i < k ? 2 : i >= n - k ? 0 : 1;
-    return { name, emblem: randomEmblem(seededRandom(L.seed + i * 97)), acc: TIER_ACC[tier], rounds: tier === 2 ? TOP_ROUNDS : ROUNDS };
+    return { name, emblem: randomEmblem(seededRandom(L.seed + i * 97)), acc: TIER_ACC[tier], yieldP: TIER_YIELD[tier] };
   });
 }
 

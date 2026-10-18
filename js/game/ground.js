@@ -1,5 +1,5 @@
 'use strict';
-/* Ziemia: arena turniejowa (piasek z koleiną) albo plac treningowy (wydeptana trawa i ścieżka) */
+/* Ziemia: arena turniejowa (piasek z koleiną), plac treningowy (wydeptana trawa i ścieżka) albo bruk miasteczka */
 function groundColor(x, wy) {
   const { back, surf, grassY } = Game;
   const h = hash2(x, wy), i3 = h < .4 ? 0 : h < .75 ? 1 : 2;
@@ -42,7 +42,20 @@ function trainGroundColor(x, wy) {
   return TG.GRASS[i3];
 }
 
+/* miasteczko: bruk z kocich łbów, wytarty pas, którym chodzi gracz, trawa przed ulicą */
+function townGroundColor(x, wy) {
+  const { back, surf, grassY } = Game;
+  const h = hash2(x, wy), i3 = h < .4 ? 0 : h < .75 ? 1 : 2;
+  if (wy < back + 2) return TOWN_G.SHADE[h < .5 ? 0 : 1]; // cień budynków
+  const g = grassY + Math.round((vn2(x * .15, 3.3) - .5) * 3);
+  if (wy >= g) return h > .985 ? TG.FLOWER[(hash2(x, wy + 7) * 3) | 0] : h > .9 ? TG.GRASS_HI : TG.GRASS[i3];
+  const row = (wy - back) / 3 | 0, off = (row & 1) * 2, lx = (x + off) % 4, ly = (wy - back) % 3;
+  if (lx === 3 || ly === 2) return Math.abs(wy - surf) <= 1 ? TOWN_G.WORN : TOWN_G.MORTAR;
+  if (lx === 0 && ly === 0) return TOWN_G.COBBLE_HI;
+  return TOWN_G.COBBLE[(hash2((x + off) >> 2, row) * 3) | 0];
+}
+
 function drawGroundRow(buf, row, wy) {
-  const W = Game.W, col = Game.scene === 'training' ? trainGroundColor : groundColor;
+  const W = Game.W, col = Game.scene === 'training' ? trainGroundColor : Game.scene === 'town' ? townGroundColor : groundColor;
   for (let x = 0; x < W; x++) buf[row + x] = col(x, wy);
 }

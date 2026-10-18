@@ -1,7 +1,9 @@
 'use strict';
-/* Walka turniejowa: gracz jedzie z lewej, przeciwnik z prawej, mijają się (jedno podejście = runda).
-   Trafienie = punkt. Przeciwnik trafia z prawdopodobieństwem zależnym od swojego miejsca w tabeli.
-   Wyposażenie przeciwnika = wyposażenie gracza: bez konia walka piesza na miecze, z koniem konna. */
+/* Walka turniejowa. Wyposażenie przeciwnika = wyposażenie gracza.
+   Z koniem: walka konna — gracz jedzie z lewej, przeciwnik z prawej, mijają się (jedno podejście = runda).
+   Przeciwnik trafia z prawdopodobieństwem zależnym od swojego miejsca w tabeli. Konna walka trwa do remisu
+   (1:1, 2:2…) — wtedy rycerze zsiadają z koni i walczą pieszo (foot.js). Bez konia od razu walka piesza.
+   Każde trafienie zabiera pasek życia (100): miecz 5 / lepszy 10, lanca 25, kopia 50. */
 const DUEL_SPEED = 28;               // px/s pieszo, na koniu × HORSE_MUL
 const DUEL_PAST = 46;                // runda kończy się, gdy rycerze miną się o tyle pikseli
 const DUEL_INTRO = 1.6, DUEL_BETWEEN = 1.3, DUEL_RESULT = 2.6; // pauzy (s)
@@ -9,6 +11,10 @@ const RIVAL_LANE = 3;                // przeciwnik jedzie torem dalej od widza (
 const RIVAL_MISS_EARLY = 16;         // pudłujący przeciwnik tnie za wcześnie, o tyle pikseli
 
 const WEAPON_FIGHT = { sword: 'MIECZE', lance: 'LANCE', kopia: 'KOPIE' };
+const DUEL_HP = 100;
+const DAMAGE = { lance: 25, kopia: 50 };  // miecz: SWORD_DMG
+const SWORD_DMG = [5, 10];                // miecz podstawowy / lepszy
+const damage = () => weapon() === 'sword' ? SWORD_DMG[hasGood() ? 1 : 0] : DAMAGE[weapon()];
 
 /* po wpisowym: lista ligi, gracz na miejscu startowym, pierwsza walka */
 function startTournament() {
@@ -21,8 +27,10 @@ function startTournament() {
 /* walka z rycerzem tuż nad graczem w tabeli */
 function beginFight() {
   const T = S.tour, opp = T.list[T.pos - 1];
-  S.duel = { opp, round: 0, rounds: opp.rounds, ps: 0, os: 0, hint: T.wins === 0, phase: 'intro', t: 0 };
-  setupRound();
+  S.duel = { opp, round: 0, ps: 0, os: 0, hp: DUEL_HP, ohp: DUEL_HP, foot: false, fp: 0, fo: 0,
+    hint: T.wins === 0 || Game.assistOn, phase: 'intro', t: 0, hurtT: 9, ohurtT: 9 };
+  if (mounted()) setupRound(); else setupFoot();
+  renderStandings(); // tabela ligi gracza z podświetlonym przeciwnikiem od pierwszej walki
   toast((mounted() ? 'WALKA KONNA' : 'WALKA PIESZA') + ': ' + opp.name.toUpperCase());
 }
 
@@ -39,13 +47,14 @@ function setupRound() {
   D.phase = 'intro'; D.t = DUEL_INTRO;
   S.parts = [];
   const key = weapon() === 'sword' ? 'SPACJA' : 'X';
-  const label = D.round > D.opp.rounds ? 'DOGRYWKA' : 'RUNDA ' + D.round + '/' + D.rounds;
-  setHint(label + ' · ' + WEAPON_FIGHT[weapon()] + (D.hint ? ' · <kbd>' + key + '</kbd> PRZY FLADZE' : ' · PRZYGOTUJ SIĘ'));
+  setHint('RUNDA ' + D.round + ' · ' + WEAPON_FIGHT[weapon()] + (D.hint ? ' · <kbd>' + key + '</kbd> PRZY FLADZE' : ' · PRZYGOTUJ SIĘ'));
   updateHud();
 }
 
 function updateDuel(dt) {
   const D = S.duel;
+  if (D.phase === 'result' && (D.t -= dt) <= 0) { afterFight(); return; } // po walce konnej i pieszej
+  if (D.foot) { updateFoot(dt); return; }
   D.hurtT += dt; D.ohurtT += dt;
   if (D.phase === 'intro') {
     if ((D.t -= dt) <= 0) { D.phase = 'ride'; setHint(null); }
@@ -57,8 +66,6 @@ function updateDuel(dt) {
     if (S.x - D.ox > DUEL_PAST) endRound();
   } else if (D.phase === 'between') {
     if ((D.t -= dt) <= 0) nextRound();
-  } else if (D.phase === 'result') {
-    if ((D.t -= dt) <= 0) afterFight();
   }
   if (D.phase !== 'ride' && weapon() !== 'sword') updateLance(dt, LANCES[weapon()], D.oLance); // broń wraca do góry
 }
@@ -93,7 +100,7 @@ function burst(x, y, n, cols, dir) {
 /* przeciwnik trafia gracza */
 function hitPlayer() {
   const D = S.duel;
-  D.oHit = true; D.os++; D.hurtT = 0;
+  D.oHit = true; D.os++; D.hp = Math.max(0, D.hp - damage()); D.hurtT = 0;
   sfxHit();
   burst(S.x, knightY() - 12, 10, ['#ffffff', '#ff5a5a', '#fff3a0'], -1);
   updateHud();
@@ -102,7 +109,7 @@ function hitPlayer() {
 function hitRival() {
   const D = S.duel;
   if (S.hitPass) return; // jedno trafienie na rundę
-  S.hitPass = true; D.ps++; D.ohurtT = 0;
+  S.hitPass = true; D.ps++; D.ohp = Math.max(0, D.ohp - damage()); D.ohurtT = 0;
   sfxHit(); sfxChime();
   const y = Game.surf - RIVAL_LANE - (mounted() ? 15 : 12);
   burst(D.ox, y, 10, ['#ffffff', '#fff3a0', '#ffd23d'], 1);
@@ -116,55 +123,67 @@ function endRound() {
   toast((me && him ? 'OBAJ TRAFIENI' : me ? 'TRAFIASZ!' : him ? 'PRZECIWNIK TRAFIA' : 'OBAJ CHYBIAJĄ') + ' · ' + D.ps + ':' + D.os);
 }
 
-/* po rundzie: koniec walki, gdy wynik jest rozstrzygnięty; remis po wszystkich rundach = dogrywka */
+/* po rundzie: pasek na zero kończy walkę, remis (1:1, 2:2…) = zejście z koni, inaczej kolejna runda.
+   (Remis na zero i oba paski na zero naraz się nie zdarzą: remis przerywa walkę konną wcześniej.) */
 function nextRound() {
-  const D = S.duel, left = D.rounds - D.round;
-  if (D.ps !== D.os && (left <= 0 || Math.abs(D.ps - D.os) > left)) { finishFight(D.ps > D.os); return; }
-  if (left <= 0) D.rounds++;
+  const D = S.duel;
+  if (D.ohp <= 0 || D.hp <= 0) { finishFight(D.ohp <= 0); return; }
   D.phase = 'wait';
-  startTransition('tournament', setupRound);
+  if (D.ps === D.os && D.ps > 0) dismount();
+  else startTransition('tournament', setupRound);
+}
+/* zejście z koni: po pojedynku na kopie paski liczone od nowa (100), po lancy / mieczu zostają */
+function dismount() {
+  const D = S.duel, kopia = weapon() === 'kopia';
+  toast('REMIS ' + D.ps + ':' + D.os + ' — ZSIADACIE Z KONI!');
+  startTransition('tournament', () => {
+    if (kopia) D.hp = D.ohp = DUEL_HP;
+    setupFoot();
+    toast('WALKA PIESZA' + (kopia ? ' · PASKI ŻYCIA OD NOWA' : ''));
+  });
 }
 
-function finishFight(win) {
+/* how: powód końca (np. poddanie) zamiast samego wyniku */
+function finishFight(win, how) {
   const D = S.duel, T = S.tour;
   D.phase = 'result'; D.t = DUEL_RESULT;
+  S.swing = false;
+  const score = D.foot ? D.fp + ':' + D.fo : D.ps + ':' + D.os, why = how ? how + ' · ' : '';
   if (win) {
     S.coins += WIN_COINS; T.wins++; D.opp.beaten = true;
     [T.list[T.pos - 1], T.list[T.pos]] = [T.list[T.pos], T.list[T.pos - 1]]; T.pos--; // gracz wskakuje na miejsce pokonanego
     for (let i = 0; i < WIN_COINS; i++) S.parts.push({ x: S.x - 4 + i * 3, y: knightY() - 26, vx: (i - 1.5) * 12, vy: -40, c: COIN_C, s: 2, life: 1.4, kind: 'coin' });
     sfxCoin(); sfxChime();
-    toast('WYGRANA ' + D.ps + ':' + D.os + '! +' + WIN_COINS + ' ' + coinWord(WIN_COINS));
+    toast((how ? why : 'WYGRANA ' + score + '! ') + '+' + WIN_COINS + ' ' + coinWord(WIN_COINS));
   } else {
     T.losses++;
     D.ko = S.coins - LOSS_COINS <= 0;
     S.coins = Math.max(0, S.coins - LOSS_COINS);
     sfxLose();
-    toast('PRZEGRANA ' + D.ps + ':' + D.os + ' · -' + LOSS_COINS + ' ' + coinWord(LOSS_COINS));
+    toast((how ? why : 'PRZEGRANA ' + score + ' · ') + '-' + LOSS_COINS + ' ' + coinWord(LOSS_COINS));
   }
   renderStandings(); updateHud();
 }
 
-/* po walce: koniec gry, wygrana liga albo kolejna walka (po porażce — rewanż z tym samym rycerzem) */
+/* po walce: koniec gry (porażka bez monet), wygrana liga albo miasteczko przed kolejną walką */
 function afterFight() {
   const D = S.duel, T = S.tour;
   if (D.ko) endTournament('ko');
   else if (T.pos === 0) endTournament(T.key === 'royal' ? 'champion' : 'league');
-  else { D.phase = 'wait'; startTransition('tournament', beginFight); }
+  else { D.phase = 'wait'; goToTown('town'); } // po każdej walce odpoczynek w miasteczku, potem kolejna (po porażce rewanż)
 }
 
-const TOUR_END = {
-  ko: 'KONIEC GRY — BRAK MONET, ODPADASZ Z TURNIEJU · <kbd>R</kbd> OD NOWA',
-  champion: 'ZWYCIĘSTWO! JESTEŚ MISTRZEM TURNIEJU · <kbd>R</kbd> OD NOWA',
-  league: 'WYGRYWASZ LIGĘ! ZAKUPY I AWANS — WKRÓTCE · <kbd>R</kbd> OD NOWA'
-};
+const KO_HINT = 'KONIEC GRY — BRAK MONET, ODPADASZ Z TURNIEJU · <kbd>R</kbd> OD NOWA';
+/* koniec turnieju: wygrana (liga / mistrzostwo) prowadzi do miasteczka, porażka bez monet kończy grę */
 function endTournament(kind) {
   S.duel.phase = 'wait';
+  if (kind !== 'ko') { goToTown(kind); return; }
   startTransition('tournament', () => {
     S.duel = null; S.over = kind; S.parts = [];
-    S.x = Math.round(Game.W * .4); S.lance = newLance(); S.swing = false;
-    setHint(TOUR_END[kind]);
-    if (kind === 'ko') sfxLose(); else sfxChime();
-    toast(kind === 'ko' ? 'ODPADASZ Z TURNIEJU' : kind === 'champion' ? 'MISTRZ TURNIEJU!' : S.tour.name + ' WYGRANA!');
+    S.x = Math.round(Game.W * .4); Held.clear(); S.lance = newLance(); S.swing = false;
+    setHint(KO_HINT);
+    sfxLose();
+    toast('ODPADASZ Z TURNIEJU');
     updateHud();
   });
 }

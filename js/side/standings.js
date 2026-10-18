@@ -10,7 +10,7 @@ function renderStandings() {
   let mine = null;
   list.forEach((k, i) => {
     const tr = document.createElement('tr');
-    const foe = T && i === T.pos - 1 && !S.over;
+    const foe = T && i === T.pos - 1 && (!S.over || S.over === 'town'); // następny przeciwnik także w miasteczku
     tr.className = k.me ? 'me' : foe ? 'foe' : k.beaten ? 'beaten' : '';
     tr.innerHTML = `<td class="n">${i + 1}.</td><td class="arms"><canvas width="7" height="9"></canvas></td><td class="who"></td><td class="pts"></td>`;
     tr.querySelector('.who').textContent = (foe ? '▶ ' : '') + k.name.toUpperCase();
