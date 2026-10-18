@@ -20,7 +20,7 @@ function renderGame(t) {
   const town = Game.scene === 'town';
   const K = {
     gear: S.gear, walk: S.walk, walking: foot ? S.duel.moving : town ? S.moving : riding(), mounted: mounted(), weapon: wpn,
-    ang: knightAngle(t), hasWeapon: true, emblem: S.emblem
+    ang: knightAngle(t), hasWeapon: true, emblem: S.emblem, guard: wpn === 'sword' ? S.guard.k : 0
   };
   if (foot && S.inv > 0 && (S.inv * 12 | 0) % 2) { /* mruga po trafieniu */ }
   else if (town && S.face < 0) flipX(ctx, fx, () => drawKnight(ctx, fx, surf, K)); // w miasteczku chodzi w obie strony

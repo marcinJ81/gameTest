@@ -1,17 +1,17 @@
 'use strict';
-/* Walka piesza na turnieju, sterowana przez gracza: → do przodu, ← do tyłu, SPACJA cios.
+/* Walka piesza na turnieju, sterowana przez gracza: → do przodu, ← do tyłu, SPACJA cios, B blok (block.js).
    Perspektywa jednowymiarowa: rycerze stoją na jednej linii, jedynym unikiem jest odskok w tył.
    Rycerze wchodzą z boków i stają naprzeciw siebie na środku. Przeciwnik podchodzi, bierze zamach
    (widać uniesiony miecz), tnie i odskakuje — trzeba trafić i uskoczyć, zanim odda.
-   Koniec: 10 trafień albo pasek życia na zero. Po 7 trafieniach jedna ze stron może się poddać. */
+   Koniec: 10 trafień albo pasek życia na zero. Od 5 trafień trafiony może się poddać. Ciosy męczą (stamina.js). */
 const FOOT_WALK_IN = 50;                  // px/s, wejście na środek
 const FOOT_SPEED = 26;                    // px/s, przód / tył
 const FOOT_GAP = 6;                       // rycerze nie wchodzą na siebie
-const FOOT_HITS = 10, YIELD_AT = 7;       // trafienia do wygranej / do pytania o poddanie
+const FOOT_HITS = 10, YIELD_AT = 5;       // trafienia do wygranej / od ilu trafień można się poddać
 const FOOT_INV = .5;                      // po trafieniu chwila bez kolejnych obrażeń (s)
 const FOOT_PUSH = 7, PUSH_V = 45;         // odrzut trafionego (px) i jego prędkość (px/s)
 const AI_MISS_FAR = 7;                    // pudłujący przeciwnik tnie z za daleka (px)
-const FOOT_KEYS = '<kbd>→</kbd> NAPRZÓD <kbd>←</kbd> W TYŁ <kbd>SPACJA</kbd> CIOS';
+const FOOT_KEYS = '<kbd>→</kbd> NAPRZÓD <kbd>←</kbd> W TYŁ <kbd>SPACJA</kbd> CIOS <kbd>B</kbd> BLOK';
 const Held = new Set();                   // wciśnięte strzałki (input.js)
 
 const onFoot = () => !!(S.duel && S.duel.foot);
@@ -29,8 +29,9 @@ function setupFoot() {
   S.x = -8; D.ox = W + 8;
   D.goal = Math.round(W / 2 - 14); D.ogoal = Math.round(W / 2 + 14);
   S.swing = false; S.cool = 0; S.inv = D.oinv = 0; S.push = D.opush = 0;
+  S.guard = newGuard(); D.oguard = newGuard();
   D.oSwing = false; D.ai = { st: 'idle', t: 1 }; D.owalk = 0; // krok przeciwnika (bez tego NaN: nogi znikały w ruchu)
-  D.moving = D.omoving = true; D.ask7p = D.ask7o = false;
+  D.moving = D.omoving = true; D.askP = D.askO = false;
   S.parts = [];
   setHint(FOOT_KEYS);
   updateHud();
@@ -53,10 +54,10 @@ function updateFoot(dt) {
   if (D.phase !== 'fight') { D.moving = D.omoving = false; return; }
   if (D.t > 0 && (D.t -= dt) <= 0) setHint(null);
   // gracz
-  const mx = Held.has('ArrowRight') - Held.has('ArrowLeft');
-  S.x += mx * FOOT_SPEED * dt;
+  const mx = Held.has('ArrowRight') - Held.has('ArrowLeft'), v = FOOT_SPEED * (S.guard.k > 0 ? BLOCK_SPEED : 1) * enMove(S.en);
+  S.x += mx * v * dt;
   D.moving = !!mx;
-  if (D.moving) S.walk += FOOT_SPEED * dt * .45;
+  if (D.moving) S.walk += v * dt * .45;
   updateFootRival(dt);
   // odrzut po trafieniu
   const p = Math.min(S.push, PUSH_V * dt), op = Math.min(D.opush, PUSH_V * dt);
@@ -69,45 +70,73 @@ function updateFoot(dt) {
 }
 
 /* AI: czeka → podchodzi na odległość ciosu (pudłujący: z za daleka) → zamach → cios → odskok.
-   Skuteczność rycerza (30 / 60 / 90%) decyduje o celności, szybkości i krótszym zamachu. */
+   Skuteczność rycerza (30 / 60 / 90%) decyduje o celności, umiejętności (league.js) o reszcie:
+   atak — krótsze czekanie, szybsze podejście i zamach; blok i unik — reakcja na zamach gracza;
+   kontra — po odskoku albo bloku od razu naciera, a z uniesionym mieczem czeka, aż gracz opuści tarczę. */
 function updateFootRival(dt) {
-  const D = S.duel, A = D.ai, acc = D.opp.acc, gap = D.ox - S.x;
+  const D = S.duel, A = D.ai, sk = D.sk, gap = D.ox - S.x;
   const [lo, hi] = swordReach(), sweet = (lo + hi) / 2;
   let mx = 0;
   if (A.st === 'idle') {
-    if (gap < hi + 4) mx = 1; // trzyma dystans
-    if ((A.t -= dt) <= 0) { A.st = 'approach'; A.will = Math.random() < acc; A.t = 3; }
+    const tired = !canStrike(D.oen);
+    if (gap < hi + (tired ? 14 : 4)) mx = 1; // trzyma dystans, zmęczony odchodzi dalej i odpoczywa
+    if (!tired && !canStrike(S.en) && Math.random() < sk.counter * dt * 3) A.t = 0; // gracz bez sił: lepsi od razu atakują
+    if ((A.t -= dt) <= 0 && !tired) rivalAttack(A);
   } else if (A.st === 'approach') {
     const want = sweet + (A.will ? 0 : AI_MISS_FAR);
     mx = gap > want + 1 ? -1 : gap < want - 1 ? 1 : 0;
     if (Math.abs(gap - want) <= 1.5 || (A.t -= dt) <= 0) {
-      A.st = 'windup'; A.t = .6 - .3 * acc; // im lepszy rycerz, tym krótszy zamach
+      A.st = 'windup'; A.t = .6 - .3 * sk.attack; A.wait = sk.counter * 1.2; // im lepszy rycerz, tym krótszy zamach
     }
   } else if (A.st === 'windup') {
-    if ((A.t -= dt) <= 0) { A.st = 'swing'; D.oSwing = true; D.oAt = SW_T[1]; D.oStruck = false; sfxSwing(); }
+    if (guardUp(S.guard) && A.wait > 0) A.wait -= dt; // gracz za tarczą: cierpliwy rycerz czeka z ciosem
+    else if ((A.t -= dt) <= 0) { A.st = 'swing'; D.oSwing = true; D.oAt = SW_T[1]; D.oStruck = false; D.oen -= EN_COST; sfxSwing(); }
   } else if (A.st === 'swing') {
     D.oAt += dt / SWING_T;
     if (!D.oStruck && D.oAt >= STRIKE_AT) { D.oStruck = true; if (gap >= lo && gap <= hi) footHitPlayer(); }
     if (D.oAt >= 1) { D.oSwing = false; A.st = 'retreat'; A.t = .2 + Math.random() * .2; }
   } else if (A.st === 'retreat') {
     mx = 1.3;
-    if ((A.t -= dt) <= 0) { A.st = 'idle'; A.t = .7 - .4 * acc + Math.random() * .4; }
+    if ((A.t -= dt) <= 0) rivalRecover(A);
+  } else if (A.st === 'guard') {
+    if ((A.t -= dt) <= 0 || D.oguard.rest > 0) rivalRecover(A); // koniec bloku albo zmęczona ręka
   }
-  const v = 16 + 12 * acc;
+  updateGuard(D.oguard, A.st === 'guard', dt);
+  const v = (16 + 14 * sk.attack) * (A.st === 'guard' ? BLOCK_SPEED : 1) * enMove(D.oen);
   D.ox += mx * v * dt;
   D.omoving = !!mx;
   if (D.omoving) D.owalk += Math.abs(mx) * v * dt * .45;
 }
-/* gracz bierze zamach: lepsi rycerze czasem odskakują */
-function rivalDodge() {
-  const A = S.duel.ai;
-  if ((A.st === 'idle' || A.st === 'approach') && Math.random() < (S.duel.opp.acc - .3) * .6) { A.st = 'retreat'; A.t = .25; }
+/* natarcie: podejście na odległość ciosu (tylko z siłą na cios) */
+function rivalAttack(A) {
+  if (!canStrike(S.duel.oen)) { A.st = 'idle'; A.t = .3; return; }
+  A.st = 'approach'; A.will = Math.random() < S.duel.sk.acc; A.t = 3;
+}
+/* po odskoku / bloku: kontra (od razu natarcie) albo chwila czekania — krótsza u rycerza z wyższym atakiem */
+function rivalRecover(A) {
+  const sk = S.duel.sk;
+  if (Math.random() < sk.counter) rivalAttack(A);
+  else { A.st = 'idle'; A.t = lerp(1.3, .3, sk.attack) + Math.random() * .4; }
+}
+/* gracz bierze zamach: przeciwnik w zasięgu zasłania się tarczą albo odskakuje (zależnie od umiejętności) */
+function rivalReact() {
+  const D = S.duel, A = D.ai, sk = D.sk;
+  if ((A.st !== 'idle' && A.st !== 'approach') || D.ox - S.x > swordReach()[1] + 8) return;
+  const r = Math.random(), pb = sk.block * .6, pd = sk.dodge * .5;
+  if (r < pb) { A.st = 'guard'; A.t = .45 + Math.random() * .2; }
+  else if (r < pb + pd) { A.st = 'retreat'; A.t = .25; }
 }
 
 /* gracz trafia przeciwnika (z checkHit); trafienie przerywa jego zamach */
 function footHitRival() {
   const D = S.duel;
   if (D.phase !== 'fight' || D.oinv > 0) return;
+  if (guardStops(D.oguard)) { // przeciwnik zablokował: odrzut i szybka kontra
+    D.opush = BLOCK_PUSH; D.oinv = FOOT_INV * .5; D.ai.t = Math.min(D.ai.t, .15);
+    blockFx(D.ox - 4, Game.surf - 12, 1);
+    toast('PRZECIWNIK BLOKUJE');
+    return;
+  }
   D.fp++; D.ohp = Math.max(0, D.ohp - damage()); D.ohurtT = 0; D.oinv = FOOT_INV; D.opush = FOOT_PUSH;
   if (D.ai.st === 'windup' || D.ai.st === 'swing') { D.oSwing = false; D.ai.st = 'retreat'; D.ai.t = .4; }
   sfxHit(); sfxChime();
@@ -118,6 +147,12 @@ function footHitRival() {
 function footHitPlayer() {
   const D = S.duel;
   if (S.inv > 0) return;
+  if (guardStops(S.guard)) { // tarcza (albo miecz) zatrzymała cios
+    S.push = BLOCK_PUSH; S.inv = FOOT_INV * .5;
+    blockFx(S.x + 4, Game.surf - 12, -1);
+    toast('ZABLOKOWANE!');
+    return;
+  }
   D.fo++; D.hp = Math.max(0, D.hp - damage()); D.hurtT = 0; S.inv = FOOT_INV; S.push = FOOT_PUSH;
   sfxHit();
   burst(S.x, Game.surf - 12, 10, ['#ffffff', '#ff5a5a', '#fff3a0'], -1);
@@ -125,19 +160,23 @@ function footHitPlayer() {
   footCheck();
 }
 
-/* po trafieniu: koniec walki (10 trafień / pasek na zero) albo pytanie o poddanie po 7 trafieniach */
+/* po trafieniu: koniec walki (10 trafień / pasek na zero) albo poddanie. Przeciwnik od 5. trafienia po każdym
+   kolejnym może się poddać — im niżej w tabeli, tym częściej (league.js). Gracz dostaje pytanie raz, przy 5. */
 function footCheck() {
   const D = S.duel;
   if (D.fp >= FOOT_HITS || D.ohp <= 0) finishFight(true);
   else if (D.fo >= FOOT_HITS || D.hp <= 0) finishFight(false);
-  else if (D.fp >= YIELD_AT && !D.ask7p) {
-    D.ask7p = true; D.yields = Math.random() < D.opp.yieldP;
-    pauseFoot(2.6);
-    showMonit('7 TRAFIEŃ NA PRZECIWNIKU', D.opp.name.toUpperCase() + (D.yields ? ' PODDAJE SIĘ!' : ' NIE PODDAJE SIĘ — WALKA TRWA'), false);
-  } else if (D.fo >= YIELD_AT && !D.ask7o) {
-    D.ask7o = true;
+  else if (D.fp >= YIELD_AT && D.lastAsk !== D.fp) {
+    D.lastAsk = D.fp; // jedno losowanie na trafienie
+    if (Math.random() < yieldChance(S.tour, D.opp)) {
+      D.yields = true;
+      pauseFoot(2.6);
+      showMonit(D.fp + ' TRAFIEŃ NA PRZECIWNIKU', D.opp.name.toUpperCase() + ' PODDAJE SIĘ!', false);
+    } else if (!D.askP) { D.askP = true; toast('NIE PODDAJE SIĘ — WALCZY DALEJ'); }
+  } else if (D.fo >= YIELD_AT && !D.askO) {
+    D.askO = true;
     pauseFoot(0);
-    showMonit('7 TRAFIEŃ NA TOBIE', D.opp.name.toUpperCase() + ' TRAFIŁ CIĘ 7 RAZY', true);
+    showMonit(D.fo + ' TRAFIEŃ NA TOBIE', D.opp.name.toUpperCase() + ' TRAFIŁ CIĘ ' + D.fo + ' RAZY', true);
   }
 }
 function pauseFoot(t) {

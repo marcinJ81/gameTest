@@ -26,3 +26,4 @@ const sfxChime = () => tones([988, 1319, 1760], .07, .18, 'square', .06);
 const sfxCoin = () => tones([1568, 1175, 784], .06, .12, 'square', .05);
 const sfxLower = () => tones([196, 175, 147], .08, .12, 'triangle', .07);
 const sfxLose = () => tones([392, 311, 247, 165], .16, .3, 'sawtooth', .06);
+const sfxBlock = () => { noise(.08, 'highpass', 3000, .2); tones([1480, 2220], .03, .14, 'square', .05); }; // brzęk o tarczę

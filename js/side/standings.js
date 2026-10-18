@@ -1,7 +1,8 @@
 'use strict';
 /* Okno „TABELA TURNIEJU”. Na treningu: liga królewska (10 najlepszych). Po wpisowym: liga gracza
    z graczem na jego miejscu, podświetlonym bieżącym przeciwnikiem i pokonanymi rycerzami.
-   Kolumna SKUT. = skuteczność rycerza (30 / 60 / 90%), wynika z jego miejsca w tabeli. */
+   Kolumna SKUT. = skuteczność rycerza: przed walką z nim szacunek z miejsca w tabeli (30 / 60 / 90%),
+   od walki z nim — skuteczność wylosowana do tej walki (league.js, rivalSkill). */
 function renderStandings() {
   const T = S && S.tour, list = T ? T.list : LEAGUES.royal.knights;
   const body = $('#tourneyBody'), scroll = $('#tourneyScroll');

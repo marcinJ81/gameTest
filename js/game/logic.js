@@ -15,6 +15,8 @@ function resetGame() {
     gear: 0, coins: COINS, emblem: null, swing: false, at: 0, struck: false, cool: 0, lance: newLance(),
     missStreak: 0, assist: false, goal: null, arrived: false, entry: null, askT: 0,
     tour: null, duel: null, // turniej: liga i miejsce gracza / bieżąca walka (duel.js)
+    guard: newGuard(),      // blok klawiszem B (block.js)
+    en: EN_MAX,             // energia na ciosy w walce (stamina.js)
     inv: 0, push: 0,        // walka piesza: chwila bez obrażeń, odrzut (foot.js)
     parts: [], pops: [], best: loadBest()
   };
@@ -51,7 +53,7 @@ const strikeTarget = straw => S.duel ? (S.duel.foot ? footHitRival() : hitRival(
 function knightAngle(t) {
   if (weapon() !== 'sword') return S.over ? LANCE_UP : lanceAngle(t, LANCES[weapon()]);
   if (S.swing) return swingAngle(S.at);
-  return S.cool > 0 ? .6 : -1 + Math.sin(t * 2.5) * .05; // zadyszka: miecz opuszczony
+  return guardAngle(S.cool > 0 ? .6 : -1 + Math.sin(t * 2.5) * .05, S.guard); // zadyszka: miecz opuszczony; blok: miecz cofnięty
 }
 
 /* spacja */
@@ -59,10 +61,11 @@ function swing() {
   if (S.over || (S.duel && S.duel.phase !== (S.duel.foot ? 'fight' : 'ride'))) return;
   if (!S.started) { S.started = true; setHint(null); return; }
   if (weapon() !== 'sword') { toast(WEAPON_NAME[weapon()] + ': OPUSZCZASZ KLAWISZEM X'); return; }
-  if (S.swing || S.cool > 0) return; // w trakcie zamachu / zadyszki nie da się zacząć kolejnego
+  if (S.swing || S.cool > 0 || playerBlocking()) return; // w trakcie zamachu / zadyszki / bloku nie da się zacząć kolejnego
+  if (!spendPlayer()) return; // w walce: brak energii na cios (stamina.js)
   S.swing = true; S.at = 0; S.struck = false;
   sfxSwing();
-  if (onFoot()) rivalDodge();
+  if (onFoot()) rivalReact();
 }
 
 /* moment uderzenia: trafienie tylko gdy cel jest w końcowej części ostrza */
@@ -192,6 +195,8 @@ function updateGame(dt) {
       if (S.x > Game.W + 10) nextPass();
     }
   }
+  updatePlayerGuard(dt); // blok klawiszem B
+  updateEnergy(dt);      // energia w walce
   if (S.swing) {
     S.at += dt / SWING_T;
     if (!S.struck && S.at >= STRIKE_AT) { S.struck = true; checkHit(); }

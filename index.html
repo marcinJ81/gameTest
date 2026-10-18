@@ -52,11 +52,16 @@
         <div class="bar-name">TY</div>
         <div class="bar-track"><i id="barMe"></i></div>
         <div class="bar-info"><span id="barMeHp">100/100</span><span id="barMeHits"></span></div>
+        <div class="bar-en" id="barMeEnRow" hidden>
+          <div class="bar-track en"><i id="barMeEn"></i></div>
+          <div class="bar-info"><span id="barMeEnTxt">ENERGIA</span></div>
+        </div>
       </div>
       <div class="bar foe">
         <div class="bar-name" id="barFoeName">PRZECIWNIK</div>
         <div class="bar-track"><i id="barFoe"></i></div>
         <div class="bar-info"><span id="barFoeHp">100/100</span><span id="barFoeHits"></span></div>
+        <div class="bar-stats" id="barFoeStats"></div>
       </div>
     </div>
     <div class="entry" id="entry" role="dialog" aria-modal="true" aria-labelledby="entryTitle" hidden>
@@ -75,7 +80,7 @@
     </div>
     <div class="entry" id="yield" role="dialog" aria-modal="true" aria-labelledby="yieldTitle" hidden>
       <div class="entry-box">
-        <div class="entry-title" id="yieldTitle">7 TRAFIEŃ</div>
+        <div class="entry-title" id="yieldTitle">5 TRAFIEŃ</div>
         <p id="yieldText"></p>
         <div id="yieldAsk">
           <p class="entry-q">CZY SIĘ PODDAJESZ?</p>
@@ -90,6 +95,7 @@
     <div class="btns">
       <button class="btn" id="btnReset" tabindex="-1">[R] OD NOWA</button>
       <button class="btn" id="btnLower" tabindex="-1" hidden>[X] OPUŚĆ</button>
+      <button class="btn" id="btnBlock" tabindex="-1" hidden>[B] BLOK</button>
       <button class="btn" id="btnAssist" tabindex="-1">[1] FLAGA: OFF</button>
       <button class="btn" id="btnQuit" tabindex="-1">[2] KONIEC TRENINGU</button>
       <button class="btn" id="btnMute" tabindex="-1">[M] DŹWIĘK: ON</button>
@@ -128,6 +134,8 @@
 <script src="js/game/rival.js"></script>
 <script src="js/game/duel.js"></script>
 <script src="js/game/foot.js"></script>
+<script src="js/game/block.js"></script>
+<script src="js/game/stamina.js"></script>
 <script src="js/game/assist.js"></script>
 <script src="js/game/entry.js"></script>
 <script src="js/game/render.js"></script>

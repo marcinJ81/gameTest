@@ -14,6 +14,8 @@ const WEAPON_FIGHT = { sword: 'MIECZE', lance: 'LANCE', kopia: 'KOPIE' };
 const DUEL_HP = 100;
 const DAMAGE = { lance: 25, kopia: 50 };  // miecz: SWORD_DMG
 const SWORD_DMG = [5, 10];                // miecz podstawowy / lepszy
+/* poziom przeciwnika dla gracza: 1-10 */
+const skillLevel = sk => Math.max(1, Math.round(sk.lvl * 10));
 const damage = () => weapon() === 'sword' ? SWORD_DMG[hasGood() ? 1 : 0] : DAMAGE[weapon()];
 
 /* po wpisowym: lista ligi, gracz na miejscu startowym, pierwsza walka */
@@ -28,10 +30,13 @@ function startTournament() {
 function beginFight() {
   const T = S.tour, opp = T.list[T.pos - 1];
   S.duel = { opp, round: 0, ps: 0, os: 0, hp: DUEL_HP, ohp: DUEL_HP, foot: false, fp: 0, fo: 0,
-    hint: T.wins === 0 || Game.assistOn, phase: 'intro', t: 0, hurtT: 9, ohurtT: 9 };
+    hint: T.wins === 0 || Game.assistOn, phase: 'intro', t: 0, hurtT: 9, ohurtT: 9,
+    sk: rivalSkill(T, opp), // statystyki przeciwnika wylosowane do tej walki (league.js)
+    oen: EN_MAX };          // ukryta energia przeciwnika (stamina.js)
+  S.en = EN_MAX; S.enTired = false;
   if (mounted()) setupRound(); else setupFoot();
   renderStandings(); // tabela ligi gracza z podświetlonym przeciwnikiem od pierwszej walki
-  toast((mounted() ? 'WALKA KONNA' : 'WALKA PIESZA') + ': ' + opp.name.toUpperCase());
+  toast((mounted() ? 'WALKA KONNA' : 'WALKA PIESZA') + ': ' + opp.name.toUpperCase() + ' · POZIOM ' + skillLevel(S.duel.sk));
 }
 
 function setupRound() {
@@ -41,13 +46,15 @@ function setupRound() {
   S.walk = 0; D.owalk = 0;
   S.swing = false; S.at = 0; S.struck = false; S.cool = 0; S.hitPass = false; S.lance = newLance();
   D.vo = knightSpeed();                       // przeciwnik jedzie tak samo szybko
-  D.will = Math.random() < D.opp.acc;         // czy przeciwnik trafi w tej rundzie
+  D.will = Math.random() < D.sk.acc;          // czy przeciwnik trafi w tej rundzie
   D.oHit = false; D.oSwing = false; D.oAt = 0; D.oActed = false; D.oLance = newLance();
+  S.guard = newGuard(); D.oguard = newGuard(); D.pBlock = D.oBlock = false;
+  D.oBlocks = weapon() === 'sword' && Math.random() < D.sk.block * .5; // w tej rundzie przeciwnik się zasłania zamiast ciąć
   D.hurtT = D.ohurtT = 9;
   D.phase = 'intro'; D.t = DUEL_INTRO;
   S.parts = [];
-  const key = weapon() === 'sword' ? 'SPACJA' : 'X';
-  setHint('RUNDA ' + D.round + ' · ' + WEAPON_FIGHT[weapon()] + (D.hint ? ' · <kbd>' + key + '</kbd> PRZY FLADZE' : ' · PRZYGOTUJ SIĘ'));
+  const key = weapon() === 'sword' ? 'SPACJA' : 'X', block = weapon() === 'sword' ? ' · <kbd>B</kbd> BLOK' : '';
+  setHint('RUNDA ' + D.round + ' · ' + WEAPON_FIGHT[weapon()] + (D.hint ? ' · <kbd>' + key + '</kbd> PRZY FLADZE' : ' · PRZYGOTUJ SIĘ') + block);
   updateHud();
 }
 
@@ -70,19 +77,22 @@ function updateDuel(dt) {
   if (D.phase !== 'ride' && weapon() !== 'sword') updateLance(dt, LANCES[weapon()], D.oLance); // broń wraca do góry
 }
 
-/* przeciwnik: miecz — zamach przy właściwej odległości (albo za wcześnie, gdy ma chybić);
-   lanca / kopia — opuszcza w porę (albo za późno) */
+/* przeciwnik: miecz — zamach przy właściwej odległości (albo za wcześnie, gdy ma chybić); w rundzie z blokiem
+   najpierw zasłania się tarczą, a tnie dopiero po ciosie gracza (za późno, żeby trafić).
+   Lanca / kopia — opuszcza w porę (albo za późno), bez bloku */
 function updateRival(dt) {
   const D = S.duel, gap = D.ox - S.x, close = knightSpeed() + D.vo;
   if (weapon() === 'sword') {
-    if (!D.oActed && gap <= swordSweet() + close * STRIKE_AT * SWING_T + (D.will ? 0 : RIVAL_MISS_EARLY)) {
-      D.oActed = true; D.oSwing = true; D.oAt = 0; D.oStruck = false; sfxSwing();
+    const sweet = swordSweet(), late = D.oBlocks && gap > sweet - 2;
+    if (!D.oActed && !late && gap <= sweet + close * STRIKE_AT * SWING_T + (D.will ? 0 : RIVAL_MISS_EARLY)) {
+      D.oActed = true; D.oSwing = true; D.oAt = 0; D.oStruck = false; D.oen -= EN_COST; sfxSwing();
     }
     if (D.oSwing) {
       D.oAt += dt / SWING_T;
-      if (!D.oStruck && D.oAt >= STRIKE_AT) { D.oStruck = true; if (D.will) hitPlayer(); }
+      if (!D.oStruck && D.oAt >= STRIKE_AT) { D.oStruck = true; if (D.will && !D.oBlocks) strikePlayer(); }
       if (D.oAt >= 1) D.oSwing = false;
     }
+    updateGuard(D.oguard, D.oBlocks && !D.oActed && gap < 40, dt);
     return;
   }
   const spec = LANCES[weapon()], tip = lanceTip();
@@ -97,6 +107,14 @@ function burst(x, y, n, cols, dir) {
   for (let i = 0; i < n; i++) S.parts.push({ x, y, vx: dir * (10 + Math.random() * 50), vy: -20 - Math.random() * 50, c: cols[i % cols.length], s: 1, life: .6, kind: 'spark' });
 }
 
+/* cios przeciwnika mieczem: blok gracza (tarcza zawsze, sam miecz czasem) albo trafienie */
+function strikePlayer() {
+  const D = S.duel;
+  if (!guardStops(S.guard)) { hitPlayer(); return; }
+  D.pBlock = true;
+  blockFx(S.x + 4, knightY() - 12, -1);
+  toast('ZABLOKOWANE!');
+}
 /* przeciwnik trafia gracza */
 function hitPlayer() {
   const D = S.duel;
@@ -109,7 +127,14 @@ function hitPlayer() {
 function hitRival() {
   const D = S.duel;
   if (S.hitPass) return; // jedno trafienie na rundę
-  S.hitPass = true; D.ps++; D.ohp = Math.max(0, D.ohp - damage()); D.ohurtT = 0;
+  S.hitPass = true;
+  if (weapon() === 'sword' && guardStops(D.oguard)) { // przeciwnik zasłonił się tarczą (albo mieczem)
+    D.oBlock = true;
+    blockFx(D.ox - 4, Game.surf - RIVAL_LANE - 15, 1);
+    toast('PRZECIWNIK BLOKUJE');
+    return;
+  }
+  D.ps++; D.ohp = Math.max(0, D.ohp - damage()); D.ohurtT = 0;
   sfxHit(); sfxChime();
   const y = Game.surf - RIVAL_LANE - (mounted() ? 15 : 12);
   burst(D.ox, y, 10, ['#ffffff', '#fff3a0', '#ffd23d'], 1);
@@ -118,9 +143,10 @@ function hitRival() {
 }
 
 function endRound() {
-  const D = S.duel, me = S.hitPass, him = D.oHit;
+  const D = S.duel, me = S.hitPass && !D.oBlock, him = D.oHit;
   D.phase = 'between'; D.t = DUEL_BETWEEN;
-  toast((me && him ? 'OBAJ TRAFIENI' : me ? 'TRAFIASZ!' : him ? 'PRZECIWNIK TRAFIA' : 'OBAJ CHYBIAJĄ') + ' · ' + D.ps + ':' + D.os);
+  const blocks = D.oBlock || D.pBlock ? (D.oBlock && D.pBlock ? 'OBAJ BLOKUJĄ' : D.oBlock ? 'PRZECIWNIK BLOKUJE' : 'BLOKUJESZ') + ' · ' : '';
+  toast(blocks + (me && him ? 'OBAJ TRAFIENI' : me ? 'TRAFIASZ!' : him ? 'PRZECIWNIK TRAFIA' : blocks ? 'BEZ TRAFIEŃ' : 'OBAJ CHYBIAJĄ') + ' · ' + D.ps + ':' + D.os);
 }
 
 /* po rundzie: pasek na zero kończy walkę, remis (1:1, 2:2…) = zejście z koni, inaczej kolejna runda.
@@ -149,6 +175,7 @@ function finishFight(win, how) {
   D.phase = 'result'; D.t = DUEL_RESULT;
   S.swing = false;
   const score = D.foot ? D.fp + ':' + D.fo : D.ps + ':' + D.os, why = how ? how + ' · ' : '';
+  nextDiff(T, win); // następny przeciwnik: po wygranej lepszy, po porażce łatwiejszy
   if (win) {
     S.coins += WIN_COINS; T.wins++; D.opp.beaten = true;
     [T.list[T.pos - 1], T.list[T.pos]] = [T.list[T.pos], T.list[T.pos - 1]]; T.pos--; // gracz wskakuje na miejsce pokonanego
@@ -159,8 +186,9 @@ function finishFight(win, how) {
     T.losses++;
     D.ko = S.coins - LOSS_COINS <= 0;
     S.coins = Math.max(0, S.coins - LOSS_COINS);
+    const drop = !D.ko && dropPlayer(T); // spadek w tabeli: następny przeciwnik słabszy
     sfxLose();
-    toast((how ? why : 'PRZEGRANA ' + score + ' · ') + '-' + LOSS_COINS + ' ' + coinWord(LOSS_COINS));
+    toast((how ? why : 'PRZEGRANA ' + score + ' · ') + '-' + LOSS_COINS + ' ' + coinWord(LOSS_COINS) + (drop ? ' · SPADASZ NA ' + (T.pos + 1) + '. MIEJSCE' : ''));
   }
   renderStandings(); updateHud();
 }
@@ -170,7 +198,7 @@ function afterFight() {
   const D = S.duel, T = S.tour;
   if (D.ko) endTournament('ko');
   else if (T.pos === 0) endTournament(T.key === 'royal' ? 'champion' : 'league');
-  else { D.phase = 'wait'; goToTown('town'); } // po każdej walce odpoczynek w miasteczku, potem kolejna (po porażce rewanż)
+  else { D.phase = 'wait'; goToTown('town'); } // po każdej walce odpoczynek w miasteczku, potem kolejna (po porażce z rycerzem niżej w tabeli)
 }
 
 const KO_HINT = 'KONIEC GRY — BRAK MONET, ODPADASZ Z TURNIEJU · <kbd>R</kbd> OD NOWA';

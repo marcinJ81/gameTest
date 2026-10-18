@@ -107,3 +107,44 @@ Na razie nie bierzmy zbroi pod uwagę. dodaj kolejny plik iteracji iteracja-12.m
 Trzeba poprawić rycerza jak walczy w ręcz, bo znikają mu nogi i podpowiedz wyłączyć za pomocą przycisku 1.
 Po za tym jak gracz wygra, to przenosi się do nowej lokalizacji będzie ona takim miasteczkiem gdzie w tle chodzą ludzie, jest kowal, któ©y kuje miecz, inn człowiek ostrzy nóż, jeszcze ktoś inny kucharz wsadza chleb do pieca gdzeiś obok w piekrani, no i jest karczma przed która kilku rycerzy rozmawi z lewej strony jest namiot gracza, od nie go zaczyna gracz.
 --Wykonane
+
+## zadanie 14
+Trzeba dodać blokowanie, na przycisku b będzie blok, blok będzie wykonywany dwo jako jeżeli rycerze mają miecze to blokowanie jest możliwe za pomocą miecza ale jest mało skuteczne, czyli większość ciosów przechodzi, dopiero tarcza blokuje każdy cios. Jak rycerz blokuje to tarcza przemieszcza się jakby trochę prze rycerza, chodzi o to żeby ten ruch był widoczny, normalnie to miecz jest przed rycerzem ale jak jest blok to tarcza jest bardziej z przodu. Teraz tak na koniach blokowanie też jest możliwe jak jest walka na miecze ale jak jest lanca (pika, włócznia czy inna broń do pojedynku) to nie ma blokowania. Czyli w pojedynchach inych niż te z mieczem nie ma blokowania tarczą.
+Teraz jeszcze słów kilka o zachowaniu przeciwników komputerowych. Wraz z kolejnymi walkami i przesuwaniem się w rankingu rośnie poziom, przeciwnik częściej atakuje, blokuje, cofa się i atakuje.
+W pierwszej walce w turnieju jest prosty ale każda kolejna to będzie coś lepszego w komputerowym przeciwniku oczywiście nie od razu ale w jakimś procencie, tak żeby w walce o pierwsze miejsce był już przeciwnik bardzo dobry ale i trudny aczkolwiek nie może mieć wszystkiego na 100% zawsze jakaś umiejętnośc będzie mniejsza.
+Znowu jak gracz przegra to spada w rankingu wiec z automatu trafia na prostrzych przeciwników. Stwórz kolejną iteracje iteracja-14.md
+--Wykonane
+
+## zadanie 15
+Popraw poddanie się rycerza następuje przy tym jak trzyma canajmniej 5 celnych uderzeń i w zależności od tego jak nisko jest w rankingu częściej się poddaje, ale im jest wyżej tym częściej będzie walczył do końca.
+Teraz tak co losowa ilość walk na niższym poziomie będzie się losował rycerz z lepszymi statystykami, np dla rycerze który jest w tej trzeciej tabeli 20 walk do przejścia, rycerz startuje z 20 miejsca pierwsza walka prosta, ale druga losuje się rycerz z lepszymi statystykami, kolejna w zależnosci od wyniku jeżeli wygrana gracza to kolejny lepszy jeżeli przegrania to łatwiejszy.
+To samo tyczy się inneych tabel tej 15 i tej 10 z tą różnicą że na tabeli 15 i 10 będą od razu lepsi gracze komputerowi lepsze statystyki.
+Teraz jeszcze jedna zmiana. Gracz ma pasek zmęczenia, to będzie zabezpieczenie przed atakiem i ciagłym zadawaniem obrażeń mieczem.
+czyli np rycerz tylko z mieczem może zadać trzy uderzenia jedno po drugim, czyli pasek energi kurczy się o 30% z każdym uderzeniem.
+Jak zostanie 10% nie można kolejnego ciosu zadać trzeba albo się zatrzymać i bronić albo cofnąć, i teraz trzeba by znaleźć ile czasu będzie na regeneracje wydaje mi się że trzeba będzie zrobić to tak że sekunda pozwala na zadanie jednego ciosu, ale ten czas będzie zależny od poziomu czyli wyposażenia, na razie przyjmujemy że wyposażenie pomaga odyzkiwać szybciej energie.
+czyli trzeba przyjąć najlepiej i najgorzej wyposażonego.
+Czyli ten co ma tylko miecz ma najdłuższy czas na odzyskiwanie  energi a ten co najlepiej wyposażony najkrótszy.
+Mamy tak:
+- miecz
+- tarcza
+- lepszy miecz
+- chełm
+- zbroje
+- tarcze z godłem
+- konia
+- konia i lance
+- konia i kopie
+
+9 opcji teraz trzeba by wyznaczyć dla najlepszej a potem  stopniowa dodawać kwant czasu aż dojedziemy do najgorszej.
+
+Jest jeszcze kwestai zachowania, każde uderzenie redukuje energie wiec można sobie wyrobić strategi try szybkie uderzenia, blok bo nie marnuje energi i cofanie też nie marnuje energi i znowu trzy szybkie uderzenia.
+Albo jedno uderzenie blok, uderzenie blok wtedy zostaje mi rezerwa energi.
+Albo jeszcze inne strategie.
+GRacz nie widzi paska energi od rycerza sterowanego przez komputer. Jedyne co widzie to statystyki, no i pasek życia
+Dodaj kolejny plik iteracja-15.md
+--Wykonane
+
+## zadanie 16
+Zwiększ czasy odnawiania, po teście wyszło mi że dalej mogę atakować bez opamiętania.
+Zróbmy tak, spadek energi będzie powiązany z ruchem jeżeli spadnie energia poniżej 50% rycerz wolniej się porusza. Eneria wolniej się odnawia jeżeli spadnie do 10%, czyli 50% wolniej sie porusza gracz ale jak spadnie do 10% to odnawianie jest wolniejsze, trzeba będzie dbać o to żeby nie atakować bezprzerwy to powinno wyeliminować ciągłą szarże
+Stwórz kolenjny plik iteracji

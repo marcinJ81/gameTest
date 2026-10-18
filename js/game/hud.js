@@ -22,6 +22,7 @@ function updateHud() {
   $('#gameTag').innerHTML = T && !town ? T.name + '<span class="tag-sub"> · MIEJSCE ' + (T.pos + 1) + '/' + T.list.length + '</span>' : SCENE_TAG[Game.scene];
   $('#hWeapon').textContent = WEAPON_NAME[weapon()];
   $('#btnLower').hidden = weapon() === 'sword';
+  $('#btnBlock').hidden = !canBlock(); // blok tylko w walce na miecze
   renderInventory(); // okno ekwipunku nad grą
   $('#btnAssist').textContent = '[1] FLAGA: ' + ((D ? D.hint : Game.assistOn) ? 'ON' : 'OFF');
   $('#btnQuit').hidden = !!(S.over || S.tour); // koniec treningu: tylko na treningu
@@ -34,6 +35,10 @@ function updateBars(D) {
   $('#bars').hidden = !D;
   if (!D) return;
   $('#barFoeName').textContent = D.opp.name.toUpperCase();
+  // statystyki przeciwnika (energii przeciwnika gracz nie widzi)
+  const sk = D.sk;
+  $('#barFoeStats').textContent = 'POZIOM ' + skillLevel(sk) + ' · SKUT. ' + Math.round(sk.acc * 100) + '% · '
+    + SKILLS.map(k => SKILL_NAME[k] + ' ' + Math.round(sk[k] * 100)).join(' · ');
   for (const [id, hp, hits] of [['Me', D.hp, D.fp], ['Foe', D.ohp, D.fo]]) {
     const fill = $('#bar' + id);
     fill.style.width = hp + '%';

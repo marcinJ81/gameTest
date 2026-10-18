@@ -57,6 +57,14 @@ kbd{font-family:inherit; color:#0a0d1f; background:var(--yellow); padding:3px 7p
 .bar-track i.low{background:#ff4a4a}
 .bar-info{display:flex; justify-content:space-between; gap:8px; margin-top:5px; color:#9aa6c8}
 .bar.foe .bar-info{flex-direction:row-reverse}
+/* energia gracza (cieńszy pasek) i statystyki przeciwnika */
+.bar-en{margin-top:6px}
+.bar-en[hidden]{display:none}
+.bar-track.en{height:6px}
+.bar-track.en i{background:#3dc8ff; transition:none}
+.bar-track.en i.mid{background:#ffd23d}
+.bar-track.en i.low{background:#ff4a4a; animation:blink .6s steps(2) infinite}
+.bar-stats{margin-top:5px; color:#ffd2d2; line-height:1.5}
 @media (max-width:820px){
   .bars{top:96px; font-size:9px}
   .bar{width:44%}

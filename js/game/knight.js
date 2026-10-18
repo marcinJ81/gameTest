@@ -44,7 +44,8 @@ function drawSword(ctx, g, L, good) {
   if (good) { ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(hx + c * L), Math.round(hy + s * L), 1, 1); }
 }
 
-/* K = { gear, walk, walking, ang, hasWeapon, weapon, mounted, emblem, [tunic, tunicD, plume] } — barwy opcjonalne (przeciwnik) */
+/* K = { gear, walk, walking, ang, hasWeapon, weapon, mounted, emblem, guard, [tunic, tunicD, plume] } — barwy opcjonalne (przeciwnik);
+   guard 0-1: blok (block.js) — tarcza przesuwa się z boku przed rycerza i zasłania go razem z ręką z mieczem */
 function drawKnight(ctx, fx, fy, K) {
   const r = (x, y, w, h, c) => rect(ctx, x, y, w, h, c);
   const shield = K.gear >= 1, helm = K.gear >= 2, armor = K.gear >= 3, good = K.gear >= 4;
@@ -75,14 +76,16 @@ function drawKnight(ctx, fx, fy, K) {
     r(fx - 2, y - 17, 4, 4, KC.SKIN); r(fx - 2, y - 18, 4, 1, KC.HAIR); r(fx - 2, y - 17, 1, 2, KC.HAIR);
     r(fx + 1, y - 16, 1, 1, KC.EYE);
   }
-  // tarcza na lewym ramieniu
-  if (shield) drawShield(ctx, fx - 7, y - 15, K.emblem);
+  // tarcza na lewym ramieniu (w bloku rysowana na końcu, przed rycerzem)
+  const gk = K.guard || 0;
+  if (shield && !gk) drawShield(ctx, fx - 7, y - 15, K.emblem);
   const hand = armor ? KC.STEEL_D : KC.SKIN;
   if (K.weapon === 'sword') { // ręka z mieczem
     const g = swordGeom(fx, y, K.ang, SWORD_LEN[good ? 1 : 0]);
     pline(ctx, g.sx, g.sy, g.hx, g.hy, body);
     r(Math.round(g.hx), Math.round(g.hy), 1, 1, hand);
     if (K.hasWeapon) drawSword(ctx, g, SWORD_LEN[good ? 1 : 0], good);
+    if (shield && gk) drawShield(ctx, Math.round(lerp(fx - 7, fx + 1, fade(gk))), y - 15 - Math.round(gk), K.emblem);
     return;
   }
   // miecz przy boku, ręka trzyma lancę / kopię pod pachą
